@@ -3,6 +3,7 @@ from django.db import models
 
 class User(AbstractUser):
     pass
+    noOfwatched = models.IntegerField(default=0, verbose_name="number of listings watched")
 
 class Listing(models.Model):
     CATEGORIES = (
@@ -25,7 +26,7 @@ class Listing(models.Model):
     listingCategory = models.CharField(max_length=64, choices=CATEGORIES, default='others', verbose_name="Category")
     listingFirstBid = models.DecimalField(max_digits=8, decimal_places=2, default=0.01, verbose_name="Starting bid")
     listingCreated = models.DateTimeField(auto_now_add=True, null=True)
-    watchers = models.ManyToManyField(User, blank=True, related_name="watchedListings", verbose_name="Watchers")
+    ### watchers = models.ManyToManyField(Watchers, blank=True, related_name="watched_item", verbose_name="Watchers")
     ### requires the Pillow library to be installed
 
     def __str__(self):
@@ -48,3 +49,9 @@ class Comment(models.Model):
     def __str__(self):
         return f"{self.userID} {self.listingID} {self.comment}"
 
+class Watching(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.listing} wateched by {self.user}"

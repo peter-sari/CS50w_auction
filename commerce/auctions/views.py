@@ -5,7 +5,7 @@ from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
-from .models import User, Listing, Bid, Comment
+from .models import User, Listing, Bid, Comment, Watching
 from django.db.models import Max, Count
 
 class ListingForm(ModelForm):
@@ -97,7 +97,6 @@ def listing(request, listing):
         ###get highest bid
         bids = Bid.objects.filter(listing=l[0]).order_by('-amount').first()
         noOfBids = Bid.objects.values('listing').annotate(num_bids=Count('amount')).filter(listing=listing)
-        print(f"-----------{noOfBids}----------------")
         ###get the number of bids
 
         currentprice = bids.amount
@@ -108,13 +107,22 @@ def listing(request, listing):
         currentprice = l[0].listingFirstBid
         minprice = currentprice
 
+    ### check if being watched by the current user
+    
+    if Watching.objects.filter(listing=l[0], user=request.user):
+        iwatch = True
+    else:
+        iwatch = False
+    
+
     return render(request, "auctions/listing.html",{
         "listing" : Listing.objects.filter(id=listing),
         "price": currentprice,
         "minprice": minprice,
         "highestBidder": highestBidder,
         "comments": Comment.objects.filter(listingID=listing),
-        "noOfBids": noOfBids
+        "noOfBids": noOfBids,
+        "iwatch": iwatch
     })
 
         
@@ -156,10 +164,8 @@ def categories(request):
 def category(request, category):
     bids = list(Bid.objects.values('listing').annotate(max_amount=Max('amount')).order_by('listing'))
     listings = Listing.objects.filter(listingActive=True).filter(listingCategory=category)
-    print(f'----------------{listings}-----------------------')
     if listings.count() == 0:
         header = f"No item in the {category} category yet"
-        print("no items")
     else:
         header= category.capitalize()
 
@@ -168,3 +174,52 @@ def category(request, category):
             "bids" : bids,
             "header": header
         })
+
+
+@login_required
+def watching(request):
+    if request.method == "POST":
+        listingID = int(request.POST["listingID"])
+        watcher = request.user
+        listing = Listing.objects.filter(id=listingID)
+
+        ### check if is in the list : add or remove
+        if Watching.objects.filter(listing=listing[0], user=request.user):
+
+            ### remove user
+            Watching.objects.filter(listing=listing[0], user=request.user).delete()
+        else:
+            
+            ### add user to the watchlist
+            w = Watching(user=watcher, listing=listing[0])
+            w.save()
+
+    
+    if Watching.objects.values('user').annotate(watched_items=Count('listing')).filter(user=request.user):
+        wcount = Watching.objects.values('user').annotate(watched_items=Count('listing')).filter(user=request.user)[0]
+        noOfW = wcount['watched_items']
+    else:
+        noOfW = 0
+
+    u = request.user
+    u.noOfwatched = noOfW
+    u.save()
+
+    return HttpResponseRedirect("/{listing}".format(listing=listingID)
+    )
+@login_required    
+def watchlist(request):
+    if Watching.objects.filter(user=request.user):
+        wlist = Watching.objects.filter(user=request.user)
+        message = "Your watched items:"
+
+    else:
+        message = "Your watchlist is empty"
+        wlist = None
+
+
+    
+    return render(request, "auctions/watchlist.html",{
+        "message": message,
+        "wlist": wlist
+    })

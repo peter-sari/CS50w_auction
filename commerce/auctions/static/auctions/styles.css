@@ -75,3 +75,18 @@ input[type=number] {
   display: block;
   margin-bottom: 3px;
 }
+
+#watchbutton{
+  background-color: #4CAF50;
+  border-radius: 2px;
+  border: none;
+  color: white;
+  padding: 2px 4px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  margin: 4px 2px;
+  cursor: pointer;
+  font-size: small;
+
+}

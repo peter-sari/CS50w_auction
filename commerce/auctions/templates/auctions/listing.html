@@ -6,7 +6,19 @@
 
 {% block body %}
 
-    <h3>{{listing.0.listingName}}</h3>
+    <h3>{{listing.0.listingName}}
+        {% if user.is_authenticated %}
+            <form action="{% url 'watching' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="listingID" value="{{listing.0.id}}">
+            {% if iwatch == True %}
+            <input type="submit" name="watch" value="unwatch" id="watchbutton" />
+            {%else%}
+                <input type="submit" name="watch" value="watch" id="watchbutton"/>
+            {%endif%}
+        {%endif%}
+            
+    </form></h3>
     <hr>
     <p><img class="listingImage" src="{{listing.0.listingImage}}"></p>
     <h5>Description:</h5>
@@ -27,6 +39,9 @@
             <input type="number" name="amount" placeholder="Bid" min="{{minprice}}">
             <input class="btn btn-primary" type="submit" value="Bid">
         </form>
+
+
+        
     {% endif %}
     <hr>
     <h5>Comments:</h5>

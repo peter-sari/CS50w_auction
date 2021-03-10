@@ -2,8 +2,12 @@
 
 {% block body %}
 
+<h5>{{message}}</h5>
 
-
-TODO
+{%for item in wlist%}
+<ul id="category">
+    <li><a href="{{item.listing.id}}">{{item.listing}}</a></li>
+</ul>
+{%endfor%}
 
 {% endblock %}
