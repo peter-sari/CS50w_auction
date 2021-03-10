@@ -36,7 +36,7 @@
         <form action="{% url 'bidding' %}" method="POST">
             {% csrf_token %}
             <input type="hidden" name="listingID" value="{{listing.0.id}}">    
-            <input type="number" name="amount" placeholder="Bid" min="{{minprice}}">
+            <input type="number" name="amount" placeholder="Bid" min="{{minprice}}" step="0.01">
             <input class="btn btn-primary" type="submit" value="Bid">
         </form>
 

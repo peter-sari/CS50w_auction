@@ -99,18 +99,20 @@ def listing(request, listing):
         noOfBids = Bid.objects.values('listing').annotate(num_bids=Count('amount')).filter(listing=listing)
         ###get the number of bids
 
-        currentprice = bids.amount
+        currentprice = float(bids.amount)
         ###get highest bidder
         highestBidder = bids.user
         minprice = float(currentprice)+0.01
     else:
-        currentprice = l[0].listingFirstBid
+        currentprice = float(l[0].listingFirstBid)
         minprice = currentprice
 
     ### check if being watched by the current user
-    
-    if Watching.objects.filter(listing=l[0], user=request.user):
-        iwatch = True
+    if request.user.is_authenticated:    
+        if Watching.objects.filter(listing=l[0], user=request.user):
+            iwatch = True
+        else:
+            iwatch = False
     else:
         iwatch = False
     
