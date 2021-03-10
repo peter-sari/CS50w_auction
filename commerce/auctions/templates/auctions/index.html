@@ -1,0 +1,38 @@
+{% extends "auctions/layout.html" %}
+
+{% block title %}
+Auctions
+{% endblock %}
+
+
+{% block body %}
+    {%if header%}
+        <h2>{{header}}</h2>
+    {%else%}
+        <h2>Active Listings</h2>
+    {%endif%}
+
+    <div></div>
+    {%for listing in listings%}
+        <div class="listingItem">
+            <div class="listingLeft">
+                <a href=../{{listing.id}}><img class="listingImage" src="{{listing.listingImage}}"></a>
+            </div>
+            <div class="listingRight">
+                <a href=../{{listing.id}}><h4>{{listing.listingName}}</h4></a>
+                <p>{{listing.listingDesc}}</p>
+                <p>Starting bid: ${{listing.listingFirstBid}}</p>
+                {%for bid in bids%}
+                    {%if bid.listing == listing.id%}
+                        {%if bid.max_amount%}
+                            <p>Highest bid: ${{bid.max_amount|floatformat:2}}</p>
+                        {%else%}
+                            <p>No bid yet</p>
+                        {%endif%}
+                    {%endif%}
+                {%endfor%}                
+                <p class="created">Created: {{listing.listingCreated}}</p>
+            </div>
+        </div>
+    {%endfor%}
+{% endblock %}
