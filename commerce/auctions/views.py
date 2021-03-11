@@ -90,42 +90,55 @@ def create_new(request):
         })
 
 def listing(request, listing):
+    highestBidder = ''
+    noOfBids = 0
+
     ###get listing
     l = Listing.objects.filter(id=listing)
-    ###check if there is a bid
-    if Bid.objects.filter(listing=l[0]):
-        ###get highest bid
-        bids = Bid.objects.filter(listing=l[0]).order_by('-amount').first()
-        noOfBids = Bid.objects.values('listing').annotate(num_bids=Count('amount')).filter(listing=listing)
-        ###get the number of bids
+    
+    if len(l) > 0:
 
-        currentprice = float(bids.amount)
-        ###get highest bidder
-        highestBidder = bids.user
-        minprice = float(currentprice)+0.01
-    else:
-        currentprice = float(l[0].listingFirstBid)
-        minprice = currentprice
+        ###check if there is a bid
+        if Bid.objects.filter(listing=l[0]):
+            ###get highest bid
+            bids = Bid.objects.filter(listing=l[0]).order_by('-amount').first()
+            noOfBids = Bid.objects.values('listing').annotate(num_bids=Count('amount')).filter(listing=listing)
+            ###get the number of bids
 
-    ### check if being watched by the current user
-    if request.user.is_authenticated:    
-        if Watching.objects.filter(listing=l[0], user=request.user):
-            iwatch = True
+            currentprice = float(bids.amount)
+            ###get highest bidder
+            highestBidder = bids.user
+            minprice = float(currentprice)+0.01
+        else:
+            currentprice = float(l[0].listingFirstBid)
+            minprice = currentprice
+
+        ### check if being watched by the current user
+        if request.user.is_authenticated:    
+            if Watching.objects.filter(listing=l[0], user=request.user):
+                iwatch = True
+            else:
+                iwatch = False
         else:
             iwatch = False
-    else:
-        iwatch = False
+        
+        if request.user == l[0].listingPoster:
+            poster = True
+        else:
+            poster = False
     
-
-    return render(request, "auctions/listing.html",{
-        "listing" : Listing.objects.filter(id=listing),
-        "price": currentprice,
-        "minprice": minprice,
-        "highestBidder": highestBidder,
-        "comments": Comment.objects.filter(listingID=listing),
-        "noOfBids": noOfBids,
-        "iwatch": iwatch
-    })
+        return render(request, "auctions/listing.html",{
+            "listing" : Listing.objects.filter(id=listing),
+            "price": currentprice,
+            "minprice": minprice,
+            "highestBidder": highestBidder,
+            "comments": Comment.objects.filter(listingID=listing),
+            "noOfBids": noOfBids,
+            "iwatch": iwatch,
+            "poster": poster
+        })
+    else:
+        return HttpResponseRedirect(reverse("index"))
 
         
 @login_required
@@ -136,13 +149,29 @@ def bidding(request):
         bidder = request.user
         listing = Listing.objects.filter(id=listingID)
 
-        ### ensure haswon is False and listing is Active
-
         b = Bid(user=bidder, listing=listing[0], amount=bidAmount)
         b.save()
+        
+### start of add to watching
+    if not Watching.objects.filter(listing=listing[0], user=request.user):
+        w = Watching(user=request.user, listing=listing[0])
+        w.save()
 
-    return HttpResponseRedirect("/{listing}".format(listing=listingID)
-    )
+        
+    if Watching.objects.values('user').annotate(watched_items=Count('listing')).filter(user=request.user):
+        wcount = Watching.objects.values('user').annotate(watched_items=Count('listing')).filter(user=request.user)[0]
+        noOfW = wcount['watched_items']
+    else:
+        noOfW = 0
+
+    u = request.user
+    u.noOfwatched = noOfW
+    u.save()
+
+### end of ad to watching
+
+
+    return HttpResponseRedirect("/{listing}".format(listing=listingID))
 
 @login_required
 def comment(request):
@@ -176,7 +205,6 @@ def category(request, category):
             "bids" : bids,
             "header": header
         })
-
 
 @login_required
 def watching(request):
@@ -219,9 +247,18 @@ def watchlist(request):
         message = "Your watchlist is empty"
         wlist = None
 
-
-    
     return render(request, "auctions/watchlist.html",{
         "message": message,
         "wlist": wlist
     })
+
+@login_required
+def close(request):
+
+    if request.method == "POST":
+        listingID = int(request.POST["listingID"])
+        i = Listing.objects.filter(id=listingID)[0]
+        i.listingActive = False
+        i.save()
+
+    return HttpResponseRedirect("/{listing}".format(listing=listingID))
